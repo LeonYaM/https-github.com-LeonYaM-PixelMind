@@ -1,0 +1,95 @@
+{
+  "users": [
+    {
+      "id": "user_admin",
+      "name": "Creador PixelMind",
+      "email": "admin@pixelmind.ai",
+      "role": "admin",
+      "credits": 145,
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "createdAt": "2026-11-14T19:33:14.478Z"
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj_default",
+      "userId": "user_admin",
+      "name": "Estudio Creativo Principal",
+      "folder": "Todos",
+      "description": "Proyecto principal para restauraciones, creaciones de video y arte digital.",
+      "itemsCount": 0,
+      "createdAt": "2026-11-14T19:33:14.480Z",
+      "updatedAt": "2026-11-14T19:33:14.480Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_e740ed4d-0895-413b-aaa0-715899437e5b",
+      "userId": "user_admin",
+      "projectId": "proj_default",
+      "type": "text_to_image",
+      "title": "Generación: \"Cyberpunk cityscape with flying ...\"",
+      "status": "completed",
+      "progress": 100,
+      "stage": "¡Finalizado con éxito!",
+      "params": {
+        "prompt": "Cyberpunk cityscape with flying cars in rainy Tokyo, neon reflections 8k",
+        "style": "cinematic",
+        "aspectRatio": "16:9",
+        "numOutputs": 1
+      },
+      "inputUrl": null,
+      "outputUrl": "/outputs/local_text_to_image_1794685523992.svg",
+      "beforeUrl": null,
+      "afterUrl": "/outputs/local_text_to_image_1794685523992.svg",
+      "resultType": "image",
+      "creditsCost": 5,
+      "provider": "Motor Local (Pendiente API Key para Imagen 3 / FLUX)",
+      "error": null,
+      "createdAt": "2026-11-14T19:45:23.986Z",
+      "startedAt": "2026-11-14T19:45:23.988Z",
+      "completedAt": "2026-11-14T19:45:23.994Z",
+      "notice": "Ingresa tu Gemini API Key o Replicate Token en Configuración para generar imágenes reales con Imagen 3 o FLUX.",
+      "isRealAI": false
+    }
+  ],
+  "folders": [
+    "Todos",
+    "Mejoras",
+    "Videos",
+    "Generaciones",
+    "Restauraciones"
+  ],
+  "settings": {
+    "apiKeys": {
+      "gemini": "",
+      "replicate": "",
+      "fal": "",
+      "openai": ""
+    },
+    "providers": {
+      "textToImage": "gemini",
+      "textToVideo": "gemini",
+      "imageToVideo": "replicate",
+      "enhancer": "replicate",
+      "restoration": "replicate",
+      "promptAssist": "gemini"
+    },
+    "creditCosts": {
+      "upscale_2x": 2,
+      "upscale_4x": 4,
+      "upscale_8x": 8,
+      "face_restore": 3,
+      "old_photo": 4,
+      "colorize": 3,
+      "remove_bg": 2,
+      "replace_bg": 4,
+      "doc_enhance": 2,
+      "text_to_image": 5,
+      "text_to_video": 15,
+      "image_to_video": 20,
+      "smart_edit": 6,
+      "prompt_assist": 1
+    }
+  }
+}

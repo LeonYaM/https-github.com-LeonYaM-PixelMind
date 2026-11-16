@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  
+  body {
+    background-color: #080A12;
+    color: #F1F5F9;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+/* Custom Cyberpunk / Dark Glow Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0B0E1B;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E294D;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3B82F6;
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+  background: rgba(15, 19, 34, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(31, 41, 77, 0.6);
+}
+
+.glass-card {
+  background: rgba(20, 26, 48, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(42, 53, 88, 0.5);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  border-color: rgba(99, 102, 241, 0.6);
+  box-shadow: 0 4px 20px -4px rgba(99, 102, 241, 0.2);
+}
+
+/* Electric Gradients */
+.gradient-text-electric {
+  background: linear-gradient(135deg, #00F0FF 0%, #3B82F6 50%, #8B5CF6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-btn {
+  background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
+  transition: all 0.25s ease;
+}
+
+.gradient-btn:hover {
+  background: linear-gradient(135deg, #1D4ED8 0%, #6D28D9 100%);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+}
