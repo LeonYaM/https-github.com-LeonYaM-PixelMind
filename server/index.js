@@ -50,13 +50,15 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start listening
-const server = app.listen(CONFIG.PORT, CONFIG.HOST, () => {
-  console.log(`\n======================================================`);
-  console.log(`  PIXELMIND AI Studio - Backend Operativo`);
-  console.log(`  Servidor corriendo en: http://${CONFIG.HOST}:${CONFIG.PORT}`);
-  console.log(`  Almacenamiento: ${CONFIG.PATHS.STORAGE}`);
-  console.log(`======================================================\n`);
-});
+// Start listening only in non-serverless environments
+if (!process.env.VERCEL) {
+  app.listen(CONFIG.PORT, CONFIG.HOST, () => {
+    console.log(`\n======================================================`);
+    console.log(`  PIXELMIND AI Studio - Backend Operativo`);
+    console.log(`  Servidor corriendo en: http://${CONFIG.HOST}:${CONFIG.PORT}`);
+    console.log(`  Almacenamiento: ${CONFIG.PATHS.STORAGE}`);
+    console.log(`======================================================\n`);
+  });
+}
 
 export default app;
