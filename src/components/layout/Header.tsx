@@ -33,7 +33,7 @@ export const Header: React.FC = () => {
     }
   };
 
-  const hasAnyKey = settings ? (settings.hasKeys.gemini || settings.hasKeys.replicate || settings.hasKeys.fal) : false;
+  const hasAnyKey = settings ? (settings.hasKeys.gemini || settings.hasKeys.replicate || settings.hasKeys.fal || settings.hasKeys.openai) : false;
 
   return (
     <header className="h-16 bg-[#090C16] border-b border-[#1A223E] px-6 flex items-center justify-between sticky top-0 z-10">

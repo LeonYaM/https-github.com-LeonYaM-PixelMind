@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useQueue } from '../../context/QueueContext';
 import { PromptAssistantModal } from '../common/PromptAssistantModal';
+import { downloadMedia } from '../../utils/download';
 import { api } from '../../services/api';
 import {
   Film,
@@ -29,9 +30,11 @@ export const TextToVideoView: React.FC = () => {
   const [motionSpeed, setMotionSpeed] = useState('normal');
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
 
-  const completedTask = tasks.find(t => t.type === 'text_to_video' && t.status === 'completed');
-  const processingTask = tasks.find(t => t.type === 'text_to_video' && (t.status === 'pending' || t.status === 'processing'));
+  const currentTask = tasks.find(t => t.id === currentTaskId) || tasks.find(t => t.type === 'text_to_video');
+  const completedTask = currentTask?.status === 'completed' ? currentTask : tasks.find(t => t.type === 'text_to_video' && t.status === 'completed');
+  const processingTask = currentTask && (currentTask.status === 'pending' || currentTask.status === 'processing') ? currentTask : tasks.find(t => t.type === 'text_to_video' && (t.status === 'pending' || t.status === 'processing'));
 
   const cameraMotions = [
     { id: 'travelling', label: 'Travelling Dinámico' },
@@ -50,7 +53,7 @@ export const TextToVideoView: React.FC = () => {
 
     try {
       setGenerating(true);
-      await api.generateTextToVideo({
+      const res = await api.generateTextToVideo({
         prompt: prompt.trim(),
         duration,
         resolution,
@@ -58,6 +61,9 @@ export const TextToVideoView: React.FC = () => {
         style,
         camera
       });
+      if (res?.task?.id) {
+        setCurrentTaskId(res.task.id);
+      }
       await refreshUser();
       showToast('Generación de video encolada. El renderizado neuronal toma 1-3 minutos.', 'success');
     } catch (e: any) {
@@ -67,13 +73,10 @@ export const TextToVideoView: React.FC = () => {
     }
   };
 
-  const handleDownload = (url: string) => {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pixelmind_video_${Date.now()}.mp4`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const handleDownload = async (url: string) => {
+    showToast('Descargando archivo de video MP4...', 'info');
+    await downloadMedia(url, `pixelmind_video_${Date.now()}`, 'mp4');
+    showToast('Descarga completada.', 'success');
   };
 
   return (

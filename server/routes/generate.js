@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import { db } from '../db.js';
 import { queueManager } from '../queue.js';
 
@@ -100,6 +101,7 @@ router.post('/image-to-video', (req, res) => {
     creditsCost: cost,
     projectId: projectId || 'proj_default',
     params: {
+      inputFilename: path.basename(inputUrl),
       prompt: prompt.trim(),
       endImageUrl,
       duration: Number(duration),

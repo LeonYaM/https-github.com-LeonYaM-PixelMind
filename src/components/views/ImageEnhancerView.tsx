@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { useQueue } from '../../context/QueueContext';
 import { FileUploader } from '../common/FileUploader';
 import { BeforeAfterSlider } from '../common/BeforeAfterSlider';
+import { downloadMedia } from '../../utils/download';
 import { api } from '../../services/api';
 import {
   Sparkles,
@@ -29,9 +30,11 @@ export const ImageEnhancerView: React.FC = () => {
   const [intensity, setIntensity] = useState<number>(85);
   const [processing, setProcessing] = useState<boolean>(false);
   const [downloadFormat, setDownloadFormat] = useState<'png' | 'jpg' | 'webp'>('png');
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
 
-  // Look for the latest completed enhance task for this image
-  const currentTask = tasks.find(t => t.type === 'enhance' && (t.inputUrl === inputUrl || t.beforeUrl === inputUrl));
+  // Look for the active or latest completed enhance task for this image
+  const currentTask = tasks.find(t => t.id === currentTaskId) ||
+    tasks.find(t => t.type === 'enhance' && (t.inputUrl === inputUrl || t.beforeUrl === inputUrl));
 
   const handleStartEnhance = async () => {
     if (!inputUrl) {
@@ -41,7 +44,7 @@ export const ImageEnhancerView: React.FC = () => {
 
     try {
       setProcessing(true);
-      await api.upscaleImage({
+      const res = await api.upscaleImage({
         inputUrl,
         filename,
         scale,
@@ -49,6 +52,9 @@ export const ImageEnhancerView: React.FC = () => {
         denoise,
         sharpen
       });
+      if (res?.task?.id) {
+        setCurrentTaskId(res.task.id);
+      }
       await refreshUser();
       showToast(`Tarea iniciada con escala ${scale}X. Procesando en cola...`, 'success');
     } catch (e: any) {
@@ -58,16 +64,12 @@ export const ImageEnhancerView: React.FC = () => {
     }
   };
 
-  const handleDownload = (format: 'png' | 'jpg' | 'webp') => {
+  const handleDownload = async (format: 'png' | 'jpg' | 'webp') => {
     const url = currentTask?.outputUrl || inputUrl;
     if (!url) return;
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pixelmind_enhanced_${scale}x_${Date.now()}.${format}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showToast(`Descargando imagen en formato ${format.toUpperCase()}`, 'success');
+    showToast(`Preparando descarga en ${format.toUpperCase()}...`, 'info');
+    await downloadMedia(url, `pixelmind_enhanced_${scale}x_${Date.now()}`, format);
+    showToast(`Descarga completada en formato ${format.toUpperCase()}`, 'success');
   };
 
   return (

@@ -22,10 +22,11 @@ const upload = multer({
   storage,
   limits: { fileSize: CONFIG.UPLOAD_LIMITS.MAX_FILE_SIZE_MB * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (CONFIG.UPLOAD_LIMITS.ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+    const allowed = [...CONFIG.UPLOAD_LIMITS.ALLOWED_IMAGE_TYPES, ...CONFIG.UPLOAD_LIMITS.ALLOWED_VIDEO_TYPES];
+    if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Formato de imagen no soportado. Formatos admitidos: JPG, PNG, WEBP, TIFF, BMP.'));
+      cb(new Error('Formato no soportado. Formatos admitidos: JPG, PNG, WEBP, TIFF, BMP, MP4, WebM, QuickTime.'));
     }
   }
 });

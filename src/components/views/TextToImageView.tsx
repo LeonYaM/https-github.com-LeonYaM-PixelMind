@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useQueue } from '../../context/QueueContext';
 import { PromptAssistantModal } from '../common/PromptAssistantModal';
+import { downloadMedia } from '../../utils/download';
 import { api } from '../../services/api';
 import {
   Image as ImageIcon,
@@ -26,10 +27,13 @@ export const TextToImageView: React.FC = () => {
   const [numOutputs, setNumOutputs] = useState(1);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
 
-  // Latest completed text_to_image task
-  const completedTask = tasks.find(t => t.type === 'text_to_image' && t.status === 'completed');
-  const processingTask = tasks.find(t => t.type === 'text_to_image' && (t.status === 'pending' || t.status === 'processing'));
+  // Latest active or completed text_to_image task
+  const currentTask = tasks.find(t => t.id === currentTaskId) ||
+    tasks.find(t => t.type === 'text_to_image');
+  const completedTask = currentTask?.status === 'completed' ? currentTask : tasks.find(t => t.type === 'text_to_image' && t.status === 'completed');
+  const processingTask = currentTask && (currentTask.status === 'pending' || currentTask.status === 'processing') ? currentTask : tasks.find(t => t.type === 'text_to_image' && (t.status === 'pending' || t.status === 'processing'));
 
   const styles = [
     { id: 'photorealistic', label: 'Fotografía Realista' },
@@ -56,12 +60,15 @@ export const TextToImageView: React.FC = () => {
 
     try {
       setGenerating(true);
-      await api.generateTextToImage({
+      const res = await api.generateTextToImage({
         prompt: prompt.trim(),
         style,
         aspectRatio,
         numOutputs
       });
+      if (res?.task?.id) {
+        setCurrentTaskId(res.task.id);
+      }
       await refreshUser();
       showToast('Generación iniciada en la cola neuronal.', 'success');
     } catch (e: any) {
@@ -71,13 +78,10 @@ export const TextToImageView: React.FC = () => {
     }
   };
 
-  const handleDownload = (url: string) => {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pixelmind_image_${Date.now()}.jpg`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const handleDownload = async (url: string) => {
+    showToast('Descargando imagen generada...', 'info');
+    await downloadMedia(url, `pixelmind_image_${Date.now()}`, 'jpg');
+    showToast('Descarga completada.', 'success');
   };
 
   return (

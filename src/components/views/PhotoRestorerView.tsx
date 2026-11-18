@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { useQueue } from '../../context/QueueContext';
 import { FileUploader } from '../common/FileUploader';
 import { BeforeAfterSlider } from '../common/BeforeAfterSlider';
+import { downloadMedia } from '../../utils/download';
 import { api } from '../../services/api';
 import {
   History,
@@ -23,11 +24,13 @@ export const PhotoRestorerView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'restore_scratches' | 'colorize' | 'documents'>('restore_scratches');
   const [withScratch, setWithScratch] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
 
-  const currentTask = tasks.find(t =>
-    (t.type === 'restore_old' || t.type === 'colorize') &&
-    (t.inputUrl === inputUrl || t.beforeUrl === inputUrl)
-  );
+  const currentTask = tasks.find(t => t.id === currentTaskId) ||
+    tasks.find(t =>
+      (t.type === 'restore_old' || t.type === 'colorize' || t.type === 'enhance') &&
+      (t.inputUrl === inputUrl || t.beforeUrl === inputUrl)
+    );
 
   const handleExecute = async () => {
     if (!inputUrl) {
@@ -37,22 +40,23 @@ export const PhotoRestorerView: React.FC = () => {
 
     try {
       setProcessing(true);
+      let res;
       if (activeTab === 'restore_scratches') {
-        await api.restoreOldPhoto({
+        res = await api.restoreOldPhoto({
           inputUrl,
           filename,
           withScratch
         });
         showToast('Restauración de rayaduras y grietas iniciada.', 'success');
       } else if (activeTab === 'colorize') {
-        await api.colorizePhoto({
+        res = await api.colorizePhoto({
           inputUrl,
           filename
         });
         showToast('Colorización neuronal DeOldify iniciada.', 'success');
       } else {
         // Document enhancement
-        await api.upscaleImage({
+        res = await api.upscaleImage({
           inputUrl,
           filename,
           scale: 2,
@@ -60,6 +64,9 @@ export const PhotoRestorerView: React.FC = () => {
           sharpen: true
         });
         showToast('Optimización de documento iniciada.', 'success');
+      }
+      if (res?.task?.id) {
+        setCurrentTaskId(res.task.id);
       }
       await refreshUser();
     } catch (e: any) {
@@ -69,15 +76,12 @@ export const PhotoRestorerView: React.FC = () => {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     const url = currentTask?.outputUrl || inputUrl;
     if (!url) return;
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pixelmind_restored_${Date.now()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    showToast('Descargando imagen restaurada...', 'info');
+    await downloadMedia(url, `pixelmind_restored_${Date.now()}`, 'png');
+    showToast('Descarga completada.', 'success');
   };
 
   return (

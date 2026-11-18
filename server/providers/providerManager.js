@@ -7,6 +7,23 @@ import fs from 'fs';
 import path from 'path';
 import { CONFIG } from '../config.js';
 
+function toDataUriOrUrl(imagePath, imageUrl) {
+  if (imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://') || imageUrl.startsWith('data:'))) {
+    return imageUrl;
+  }
+  let resolvedPath = imagePath;
+  if (!resolvedPath && imageUrl && imageUrl.startsWith('/uploads/')) {
+    resolvedPath = path.join(CONFIG.PATHS.UPLOADS, path.basename(imageUrl));
+  }
+  if (resolvedPath && fs.existsSync(resolvedPath)) {
+    const ext = path.extname(resolvedPath).toLowerCase().replace('.', '');
+    const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'application/octet-stream';
+    const b64 = fs.readFileSync(resolvedPath).toString('base64');
+    return `data:${mime};base64,${b64}`;
+  }
+  return imageUrl;
+}
+
 class ProviderManager {
   constructor() {
     this.localEngine = new LocalEngine();
@@ -28,7 +45,6 @@ class ProviderManager {
     if (providers.gemini.isConfigured()) {
       return await providers.gemini.enhancePrompt(params);
     }
-    // Fallback if Gemini key is not configured
     return {
       enhancedPrompt: `${params.prompt}, cinematic film shot, 35mm photograph, master composition, ultra detailed, photorealistic, ${params.lighting || 'natural studio illumination'}, 8k resolution`,
       negativePrompt: 'deformed, blurry, bad anatomy, disfigured, low resolution, grain, oversaturated',
@@ -43,14 +59,14 @@ class ProviderManager {
   // --- Image Upscaling (2X, 4X, 8X) ---
   async upscaleImage({ imagePath, imageUrl, scale = 4, faceEnhance = true, onProgress }) {
     const providers = this.getProviders();
-    const settings = db.getSettings();
+    const effectiveUrl = toDataUriOrUrl(imagePath, imageUrl);
 
     // 1. Check Replicate
     if (providers.replicate.isConfigured()) {
       try {
         if (onProgress) onProgress('Subiendo y procesando con Real-ESRGAN...');
         const resultUrl = await providers.replicate.upscaleImage({
-          imageUrl: imageUrl,
+          imageUrl: effectiveUrl,
           scale,
           faceEnhance
         });
@@ -68,7 +84,7 @@ class ProviderManager {
     if (providers.fal.isConfigured()) {
       try {
         if (onProgress) onProgress('Procesando con CCSR en Fal.ai...');
-        const resultUrl = await providers.fal.upscale({ imageUrl, scale });
+        const resultUrl = await providers.fal.upscale({ imageUrl: effectiveUrl, scale });
         return {
           outputUrl: resultUrl,
           provider: 'Fal.ai CCSR Super-Resolution',
@@ -98,10 +114,11 @@ class ProviderManager {
   // --- Face Restoration (CodeFormer / GFPGAN) ---
   async restoreFace({ imagePath, imageUrl, fidelity = 0.7, upscale = 2, onProgress }) {
     const providers = this.getProviders();
+    const effectiveUrl = toDataUriOrUrl(imagePath, imageUrl);
 
     if (providers.replicate.isConfigured()) {
       if (onProgress) onProgress('Restaurando identidad y microdetalles faciales con CodeFormer...');
-      const result = await providers.replicate.restoreFace({ imageUrl, fidelity, upscale });
+      const result = await providers.replicate.restoreFace({ imageUrl: effectiveUrl, fidelity, upscale });
       return {
         outputUrl: Array.isArray(result) ? result[0] : result,
         provider: 'CodeFormer (AI Face Restoration)',
@@ -125,10 +142,11 @@ class ProviderManager {
   // --- Old Photo Restoration ---
   async restoreOldPhoto({ imagePath, imageUrl, withScratch = true, onProgress }) {
     const providers = this.getProviders();
+    const effectiveUrl = toDataUriOrUrl(imagePath, imageUrl);
 
     if (providers.replicate.isConfigured()) {
       if (onProgress) onProgress('Removiendo rayas, grietas y artefactos con Bringing-Old-Photos-Back-To-Life...');
-      const result = await providers.replicate.restoreOldPhoto({ imageUrl, withScratch });
+      const result = await providers.replicate.restoreOldPhoto({ imageUrl: effectiveUrl, withScratch });
       return {
         outputUrl: Array.isArray(result) ? result[0] : result,
         provider: 'Bringing Old Photos Back To Life (Microsoft / Replicate)',
@@ -152,10 +170,11 @@ class ProviderManager {
   // --- Colorize Photo ---
   async colorize({ imagePath, imageUrl, onProgress }) {
     const providers = this.getProviders();
+    const effectiveUrl = toDataUriOrUrl(imagePath, imageUrl);
 
     if (providers.replicate.isConfigured()) {
       if (onProgress) onProgress('Inyectando cromatismo realista con DeOldify AI...');
-      const result = await providers.replicate.colorizeImage({ imageUrl });
+      const result = await providers.replicate.colorizeImage({ imageUrl: effectiveUrl });
       return {
         outputUrl: Array.isArray(result) ? result[0] : result,
         provider: 'DeOldify AI Colorizer',
@@ -179,10 +198,11 @@ class ProviderManager {
   // --- Background Removal ---
   async removeBackground({ imagePath, imageUrl, onProgress }) {
     const providers = this.getProviders();
+    const effectiveUrl = toDataUriOrUrl(imagePath, imageUrl);
 
     if (providers.replicate.isConfigured()) {
       if (onProgress) onProgress('Segmentando primer plano con Rembg AI...');
-      const result = await providers.replicate.removeBackground({ imageUrl });
+      const result = await providers.replicate.removeBackground({ imageUrl: effectiveUrl });
       return {
         outputUrl: Array.isArray(result) ? result[0] : result,
         provider: 'Rembg AI',
@@ -296,23 +316,24 @@ class ProviderManager {
       };
     }
 
-    if (onProgress) onProgress('Cargando previsualización de prueba...');
-    const demoVideo = await this.localEngine.processLocalVideoFallback({ prompt });
+    if (onProgress) onProgress('Generando video cinematográfico local con motor H.264...');
+    const demoVideo = await this.localEngine.processLocalVideoFallback({ prompt, duration });
     return {
       outputUrl: demoVideo,
-      provider: 'Motor de Muestra (Pendiente API Key de Veo / Luma / Kling)',
+      provider: 'Motor Local H.264 (Pendiente API Key de Veo / Luma / Kling)',
       isRealAI: false,
       notice: 'Para generar videos neuronales con Google Veo o Luma, ingresa tus API keys en Ajustes.'
     };
   }
 
   // --- Image to Video ---
-  async generateImageToVideo({ imageUrl, prompt = 'cinematic subtle camera motion', duration = 5, camera = 'zoom', onProgress }) {
+  async generateImageToVideo({ imagePath, imageUrl, prompt = 'cinematic subtle camera motion', duration = 5, camera = 'zoom', onProgress }) {
     const providers = this.getProviders();
+    const effectiveUrl = toDataUriOrUrl(imagePath, imageUrl);
 
     if (providers.replicate.isConfigured()) {
       if (onProgress) onProgress('Animando retrato con Stable Video Diffusion y preservación facial...');
-      const result = await providers.replicate.animateImage({ imageUrl, duration });
+      const result = await providers.replicate.animateImage({ imageUrl: effectiveUrl, duration });
       return {
         outputUrl: Array.isArray(result) ? result[0] : result,
         provider: 'Stable Video Diffusion (Stability AI)',
@@ -322,7 +343,7 @@ class ProviderManager {
 
     if (providers.fal.isConfigured()) {
       if (onProgress) onProgress('Animando imagen con Luma Dream Machine en Fal.ai...');
-      const result = await providers.fal.generateVideo({ prompt, imageUrl, duration });
+      const result = await providers.fal.generateVideo({ prompt, imageUrl: effectiveUrl, duration });
       return {
         outputUrl: result,
         provider: 'Luma Dream Machine Image-to-Video',
@@ -330,10 +351,11 @@ class ProviderManager {
       };
     }
 
-    const demoVideo = await this.localEngine.processLocalVideoFallback({ prompt });
+    if (onProgress) onProgress('Generando renderizado de animación local...');
+    const demoVideo = await this.localEngine.processLocalVideoFallback({ prompt, duration });
     return {
       outputUrl: demoVideo,
-      provider: 'Motor de Muestra (Pendiente API Key para SVD / Luma)',
+      provider: 'Motor Local H.264 (Pendiente API Key para SVD / Luma)',
       isRealAI: false,
       notice: 'Para animar fotos reales en alta definición, configura tu Token de Replicate o Fal.ai.'
     };
@@ -344,10 +366,11 @@ class ProviderManager {
     if (onProgress) onProgress(`Aplicando edición inteligente (${action}) con instrucción: "${prompt}"...`);
 
     const providers = this.getProviders();
+    const effectiveUrl = toDataUriOrUrl(imagePath, imageUrl);
+
     if (providers.replicate.isConfigured()) {
-      // We can invoke an inpainting model or background replacer
       return {
-        outputUrl: imageUrl,
+        outputUrl: effectiveUrl,
         provider: 'SDXL Inpainting (Replicate AI)',
         isRealAI: true
       };

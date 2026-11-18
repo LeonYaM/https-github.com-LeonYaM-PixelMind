@@ -20,7 +20,25 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isSideBySide, setIsSideBySide] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(800);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.clientWidth);
+      }
+    };
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(containerRef.current);
+    window.addEventListener('resize', updateWidth);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateWidth);
+    };
+  }, []);
 
   const handleMove = useCallback((clientX: number) => {
     if (!containerRef.current) return;
@@ -173,7 +191,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           >
             <div
               style={{
-                width: containerRef.current ? `${containerRef.current.clientWidth}px` : '100%',
+                width: `${containerWidth}px`,
                 height: '100%',
                 transform: `scale(${zoomLevel})`
               }}

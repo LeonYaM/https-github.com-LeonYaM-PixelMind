@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../services/api';
 import {
@@ -28,6 +28,18 @@ export const SettingsView: React.FC = () => {
   // Credit costs editing (Admin)
   const [creditCosts, setCreditCosts] = useState<Record<string, number>>(settings?.creditCosts || {});
   const [adminUserCredits, setAdminUserCredits] = useState<number>(user?.credits || 100);
+
+  useEffect(() => {
+    if (settings?.creditCosts) {
+      setCreditCosts(settings.creditCosts);
+    }
+  }, [settings?.creditCosts]);
+
+  useEffect(() => {
+    if (user?.credits !== undefined) {
+      setAdminUserCredits(user.credits);
+    }
+  }, [user?.credits]);
 
   const handleTest = async (provider: string, currentKey: string) => {
     try {

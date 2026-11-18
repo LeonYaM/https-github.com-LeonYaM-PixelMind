@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useQueue } from '../../context/QueueContext';
 import { FileUploader } from '../common/FileUploader';
+import { downloadMedia } from '../../utils/download';
 import { api } from '../../services/api';
 import {
   Video,
@@ -27,9 +28,12 @@ export const ImageToVideoView: React.FC = () => {
   const [intensity, setIntensity] = useState('medium');
   const [preserveFaces, setPreserveFaces] = useState(true);
   const [animating, setAnimating] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
 
-  const completedTask = tasks.find(t => t.type === 'image_to_video' && t.status === 'completed');
-  const processingTask = tasks.find(t => t.type === 'image_to_video' && (t.status === 'pending' || t.status === 'processing'));
+  const currentTask = tasks.find(t => t.id === currentTaskId) ||
+    tasks.find(t => t.type === 'image_to_video' && (t.inputUrl === inputUrl || t.beforeUrl === inputUrl));
+  const completedTask = currentTask?.status === 'completed' ? currentTask : tasks.find(t => t.type === 'image_to_video' && t.status === 'completed');
+  const processingTask = currentTask && (currentTask.status === 'pending' || currentTask.status === 'processing') ? currentTask : tasks.find(t => t.type === 'image_to_video' && (t.status === 'pending' || t.status === 'processing'));
 
   const handleAnimate = async () => {
     if (!inputUrl) {
@@ -39,7 +43,7 @@ export const ImageToVideoView: React.FC = () => {
 
     try {
       setAnimating(true);
-      await api.generateImageToVideo({
+      const res = await api.generateImageToVideo({
         inputUrl,
         endImageUrl: endImageUrl || undefined,
         prompt,
@@ -48,6 +52,9 @@ export const ImageToVideoView: React.FC = () => {
         intensity,
         preserveFaces
       });
+      if (res?.task?.id) {
+        setCurrentTaskId(res.task.id);
+      }
       await refreshUser();
       showToast('Animación de imagen iniciada con preservación facial.', 'success');
     } catch (e: any) {
@@ -57,13 +64,10 @@ export const ImageToVideoView: React.FC = () => {
     }
   };
 
-  const handleDownload = (url: string) => {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pixelmind_animated_${Date.now()}.mp4`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const handleDownload = async (url: string) => {
+    showToast('Descargando archivo de video MP4...', 'info');
+    await downloadMedia(url, `pixelmind_animated_${Date.now()}`, 'mp4');
+    showToast('Descarga completada.', 'success');
   };
 
   return (

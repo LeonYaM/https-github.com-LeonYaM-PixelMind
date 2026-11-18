@@ -195,7 +195,9 @@ class QueueManager extends EventEmitter {
       }
 
       case 'image_to_video': {
+        const fullInputPath = params.inputFilename ? path.join(CONFIG.PATHS.UPLOADS, params.inputFilename) : null;
         result = await providerManager.generateImageToVideo({
+          imagePath: fullInputPath,
           imageUrl: task.inputUrl,
           prompt: params.prompt || 'cinematic motion',
           duration: params.duration || 5,

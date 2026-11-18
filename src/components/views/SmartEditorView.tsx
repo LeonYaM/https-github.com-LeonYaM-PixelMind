@@ -4,6 +4,7 @@ import { useQueue } from '../../context/QueueContext';
 import { FileUploader } from '../common/FileUploader';
 import { CanvasInpainter } from '../common/CanvasInpainter';
 import { BeforeAfterSlider } from '../common/BeforeAfterSlider';
+import { downloadMedia } from '../../utils/download';
 import { api } from '../../services/api';
 import {
   Wand2,
@@ -26,9 +27,12 @@ export const SmartEditorView: React.FC = () => {
   const [prompt, setPrompt] = useState('');
   const [actionType, setActionType] = useState('inpaint');
   const [processing, setProcessing] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
 
-  const completedTask = tasks.find(t => t.type === 'smart_edit' && t.status === 'completed');
-  const processingTask = tasks.find(t => t.type === 'smart_edit' && (t.status === 'pending' || t.status === 'processing'));
+  const currentTask = tasks.find(t => t.id === currentTaskId) ||
+    tasks.find(t => t.type === 'smart_edit' && (t.inputUrl === inputUrl || t.beforeUrl === inputUrl));
+  const completedTask = currentTask?.status === 'completed' ? currentTask : tasks.find(t => t.type === 'smart_edit' && t.status === 'completed');
+  const processingTask = currentTask && (currentTask.status === 'pending' || currentTask.status === 'processing') ? currentTask : tasks.find(t => t.type === 'smart_edit' && (t.status === 'pending' || t.status === 'processing'));
 
   const quickActions = [
     { id: 'replace_bg', label: 'Reemplazar Fondo', icon: ImageIcon, promptPreset: 'Change background to a modern architectural luxury penthouse at night' },
@@ -50,12 +54,15 @@ export const SmartEditorView: React.FC = () => {
 
     try {
       setProcessing(true);
-      await api.inpaintImage({
+      const res = await api.inpaintImage({
         inputUrl,
         maskData: maskData || undefined,
         prompt: prompt.trim(),
         action: actionType
       });
+      if (res?.task?.id) {
+        setCurrentTaskId(res.task.id);
+      }
       await refreshUser();
       showToast('Edición inteligente en proceso en la red neuronal.', 'success');
     } catch (e: any) {
@@ -65,13 +72,10 @@ export const SmartEditorView: React.FC = () => {
     }
   };
 
-  const handleDownload = (url: string) => {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pixelmind_smart_edit_${Date.now()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const handleDownload = async (url: string) => {
+    showToast('Descargando imagen editada...', 'info');
+    await downloadMedia(url, `pixelmind_smart_edit_${Date.now()}`, 'png');
+    showToast('Descarga completada.', 'success');
   };
 
   return (

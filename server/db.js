@@ -80,9 +80,7 @@ class Database {
 
   save() {
     try {
-      const tempPath = `${this.filePath}.tmp`;
-      fs.writeFileSync(tempPath, JSON.stringify(this.data, null, 2), 'utf-8');
-      fs.renameSync(tempPath, this.filePath);
+      fs.writeFileSync(this.filePath, JSON.stringify(this.data, null, 2), 'utf-8');
     } catch (err) {
       console.error('Error persisting database:', err);
     }
